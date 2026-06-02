@@ -65,7 +65,17 @@ function Input({ label, value, onChange, type = "text", placeholder, required, p
 }
 
 function Modal({ title, onClose, children, danger }) {
-  return (<div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}><div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: "24px 24px 0 0", width: "100%", maxWidth: 480, maxHeight: "90vh", overflowY: "auto", padding: "24px 20px 40px", boxShadow: "0 -8px 40px rgba(0,0,0,0.18)" }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}><h2 style={{ fontSize: 18, fontWeight: 700, color: danger ? C.danger : C.text, margin: 0 }}>{title}</h2><button onClick={onClose} style={{ background: "none", border: "none", fontSize: 22, color: C.textMuted, cursor: "pointer", lineHeight: 1, padding: 4 }}>✕</button></div>{children}</div></div>);
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, overflowY: "auto" }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: "24px", width: "100%", maxWidth: 480, maxHeight: "90vh", overflowY: "auto", padding: "24px 20px 40px", boxShadow: "0 8px 40px rgba(0,0,0,0.18)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: danger ? C.danger : C.text, margin: 0 }}>{title}</h2>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 22, color: C.textMuted, cursor: "pointer", lineHeight: 1, padding: 4 }}>✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
 }
 
 function Toast({ message, type = "success" }) {
