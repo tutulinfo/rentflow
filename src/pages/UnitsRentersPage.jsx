@@ -89,9 +89,11 @@ function UnitModal({ unit, onClose, onSaved }) {
   const [rent, setRent] = useState(unit?.room_rent || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [confirmText, setConfirmText] = useState("");
 
   const save = async () => {
     if (!name.trim() || !rent) { setError("Unit name and rent are required."); return; }
+    if (editing && confirmText.trim().toUpperCase() !== "EDIT") { setError('Type "EDIT" in the confirmation box to save changes.'); return; }
     setLoading(true); setError("");
     const payload = { unit_name: name.trim(), room_rent: parseFloat(rent) };
     let result;
@@ -106,10 +108,44 @@ function UnitModal({ unit, onClose, onSaved }) {
     <Modal title={editing ? "Edit Unit" : "Add New Unit"} onClose={onClose}>
       <Input label="Unit Name" value={name} onChange={setName} placeholder="e.g. Unit 1, Room A" required />
       <Input label="Monthly Rent (BDT)" value={rent} onChange={setRent} type="number" placeholder="e.g. 5000" prefix="৳" required />
+      {editing && (
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 6 }}>To confirm edits, type "EDIT" below</label>
+          <input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="Type EDIT to confirm" style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14 }} />
+        </div>
+      )}
       {error && <p style={{ color: C.danger, fontSize: 13, marginBottom: 12 }}>{error}</p>}
       <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
         <Btn variant="ghost" onClick={onClose} style={{ flex: 1 }}>Cancel</Btn>
         <Btn onClick={save} disabled={loading} style={{ flex: 1 }}>{loading ? "Saving…" : editing ? "Save Changes" : "Add Unit"}</Btn>
+      </div>
+    </Modal>
+  );
+}
+
+function DeleteConfirmModal({ unit, onClose, onDeleted }) {
+  const [confirmText, setConfirmText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const destroy = async () => {
+    if (confirmText.trim().toUpperCase() !== "DELETE") { setError('Type "DELETE" to confirm deletion.'); return; }
+    setLoading(true); setError("");
+    const result = await supabase.from("units").delete().eq("id", unit.id);
+    setLoading(false);
+    if (result.error) { setError(result.error.message); return; }
+    onDeleted("Unit deleted.");
+  };
+
+  return (
+    <Modal title={`Delete ${unit?.unit_name || "unit"}`} onClose={onClose} danger>
+      <p style={{ color: C.text, marginBottom: 12 }}>{`This action will permanently delete ${unit?.unit_name || "this unit"}.`}</p>
+      <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 12 }}>To confirm, type <strong>DELETE</strong> in the box below.</p>
+      <input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="Type DELETE to confirm" style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, marginBottom: 12 }} />
+      {error && <p style={{ color: C.danger, fontSize: 13, marginBottom: 12 }}>{error}</p>}
+      <div style={{ display: "flex", gap: 10 }}>
+        <Btn variant="ghost" onClick={onClose} style={{ flex: 1 }}>Cancel</Btn>
+        <Btn variant="danger" onClick={destroy} disabled={loading} style={{ flex: 1 }}>{loading ? "Deleting…" : "Delete Unit"}</Btn>
       </div>
     </Modal>
   );
@@ -178,7 +214,13 @@ export default function UnitsRentersPage() {
                   <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{unit.unit_name}</div>
                   <div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>{fmtBDT(unit.room_rent)}/mo</div>
                 </div>
-                <StatusBadge status={unit.status} />
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <StatusBadge status={unit.status} />
+                  <div style={{ display: "flex", gap: 8, marginLeft: 8 }}>
+                    <Btn variant="ghost" small onClick={() => setModal({ type: "editUnit", unit })}>Edit</Btn>
+                    <Btn variant="danger" small onClick={() => setModal({ type: "deleteUnit", unit })}>Delete</Btn>
+                  </div>
+                </div>
               </div>
             </div>
           ))
@@ -186,6 +228,8 @@ export default function UnitsRentersPage() {
       </div>
 
       {modal?.type === "addUnit" && <UnitModal unit={null} onClose={() => setModal(null)} onSaved={handleSaved} />}
+      {modal?.type === "editUnit" && <UnitModal unit={modal.unit} onClose={() => setModal(null)} onSaved={handleSaved} />}
+      {modal?.type === "deleteUnit" && <DeleteConfirmModal unit={modal.unit} onClose={() => setModal(null)} onDeleted={(msg) => { setModal(null); showToast(msg); load(); }} />}
       <Toast message={toast.msg} type={toast.type} />
     </div>
   );
