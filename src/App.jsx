@@ -48,11 +48,13 @@ const C = {
 
 // ─── Navigation config ─────────────────────────────────────────────────────
 const NAV = [
-  { id: "dashboard",  label: "Dashboard",  icon: "🏠", title: "Dashboard",       sub: "Overview & quick actions"  },
-  { id: "units",      label: "Units",      icon: "🏘", title: "Units & Renters", sub: "Manage your property"      },
-  { id: "billing",    label: "Billing",    icon: "⚡", title: "Meter & Billing", sub: "Monthly billing cycle"     },
+  { id: "dashboard",  label: "Home",       icon: "🏠", title: "Dashboard",       sub: "Overview & quick actions"  },
   { id: "ledger",     label: "Ledger",     icon: "📒", title: "Ledger",          sub: "Payment history"           },
   { id: "financials", label: "Financials", icon: "📊", title: "Financials",      sub: "Income & expenses"         },
+  { id: "billing",    label: "Billing",    icon: "⚡", title: "Meter & Billing", sub: "Monthly billing cycle"     },
+  { id: "settings",   label: "Settings",   icon: "⚙️", title: "Settings",       sub: "Configuration & logout"    },
+  { id: "units",      label: "Units",      icon: "🏘", title: "Units & Renters", sub: "Manage your property", hidden: true },
+  { id: "print",      label: "Print",      icon: "🖨️", title: "Print Bills",    sub: "Preview and print bills", hidden: true },
 ];
 
 // ─── AUTH: Simple Supabase email/password login ────────────────────────────
@@ -100,8 +102,6 @@ function LoginScreen({ onLogin }) {
 // ─── MAIN APP SHELL ────────────────────────────────────────────────────────
 function AppShell() {
   const [activePage, setActivePage] = useState("dashboard");
-  const [showPrint,  setShowPrint]  = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [session,    setSession]    = useState(null);
 
   useEffect(() => {
@@ -115,15 +115,15 @@ function AppShell() {
   const meta = NAV.find(n => n.id === activePage) || NAV[0];
 
   const renderPage = () => {
-    if (showPrint)    return <PrintBillsPage />;
-    if (showSettings) return <SettingsPage />;
     switch (activePage) {
-      case "dashboard":  return <DashboardPage />;
+      case "dashboard":  return <DashboardPage onNavigate={setActivePage} />;
       case "units":      return <UnitsRentersPage />;
-      case "billing":    return <MeterBillingPage />;
+      case "billing":    return <MeterBillingPage onPrint={() => setActivePage("print")} />;
       case "ledger":     return <LedgerPage />;
       case "financials": return <FinancialsPage />;
-      default:           return <DashboardPage />;
+      case "settings":   return <SettingsPage onNavigate={setActivePage} onLogout={signOut} />;
+      case "print":      return <PrintBillsPage />;
+      default:           return <DashboardPage onNavigate={setActivePage} />;
     }
   };
 
@@ -140,6 +140,7 @@ function AppShell() {
         * { box-sizing: border-box; }
         body { margin: 0; padding: 0; }
         input, button, select { font-family: 'DM Sans', sans-serif; }
+        button { display: inline-flex; align-items: center; justify-content: center; }
       `}</style>
 
       {/* ── Header ── */}
@@ -147,16 +148,11 @@ function AppShell() {
         <div>
           <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.65)", textTransform: "uppercase", letterSpacing: "0.13em" }}>RentFlow</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>
-            {showPrint ? "Print Bills" : showSettings ? "Settings" : meta.title}
+            {activePage === "print" ? "Print Bills" : meta.title}
           </div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>
-            {showPrint ? "A4 print layout — 6 bills per page" : showSettings ? "Global rates & configuration" : meta.sub}
+            {activePage === "print" ? "A4 print layout — 6 bills per page" : meta.sub}
           </div>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => { setShowPrint(p => !p); setShowSettings(false); }} style={{ width: 38, height: 38, borderRadius: "50%", background: showPrint ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} title="Print Bills">🖨️</button>
-          <button onClick={() => { setShowSettings(s => !s); setShowPrint(false); }} style={{ width: 38, height: 38, borderRadius: "50%", background: showSettings ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} title="Settings">⚙️</button>
-          <button onClick={signOut} style={{ width: 38, height: 38, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} title="Sign Out">🚪</button>
         </div>
       </header>
 
@@ -167,10 +163,10 @@ function AppShell() {
 
       {/* ── Bottom Nav ── */}
       <nav className="no-print" style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: "#fff", borderTop: `1px solid ${C.border}`, display: "flex", zIndex: 200, boxShadow: "0 -4px 20px rgba(0,0,0,0.08)" }}>
-        {NAV.map(item => {
-          const active = activePage === item.id && !showPrint && !showSettings;
+        {NAV.filter(item => !item.hidden).map(item => {
+          const active = activePage === item.id;
           return (
-            <button key={item.id} onClick={() => { setActivePage(item.id); setShowPrint(false); setShowSettings(false); }} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "10px 4px 8px", cursor: "pointer", border: "none", background: "transparent", position: "relative" }}>
+            <button key={item.id} onClick={() => { setActivePage(item.id); }} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "10px 4px 8px", cursor: "pointer", border: "none", background: "transparent", position: "relative" }}>
               {active && <span style={{ position: "absolute", top: 0, width: 32, height: 3, background: C.primary, borderRadius: "0 0 4px 4px" }} />}
               <span style={{ fontSize: active ? 22 : 20, lineHeight: 1, transition: "font-size .18s" }}>{item.icon}</span>
               <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? C.primary : C.textMuted, marginTop: 3, transition: "all .18s" }}>{item.label}</span>

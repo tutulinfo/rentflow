@@ -259,11 +259,11 @@ function BillPreviewCard({ renter, calc, currentReading }) {
 }
 
 // ─── ALREADY BILLED SCREEN ─────────────────────────────────────────────────
-function AlreadyBilled({ billingMonth, bills, onReset }) {
+function AlreadyBilled({ billingMonth, bills, onReset, onPrint, onEdit }) {
   return (
     <div style={{ padding: "16px" }}>
       <InfoBox type="success">
-        ✅ Bills for <strong>{monthLabel(billingMonth)}</strong> have already been generated. You cannot re-bill the same month.
+        ✅ Bills for <strong>{monthLabel(billingMonth)}</strong> have already been generated.
       </InfoBox>
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Generated Bills</div>
@@ -284,17 +284,21 @@ function AlreadyBilled({ billingMonth, bills, onReset }) {
           </div>
         ))}
       </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+        <button onClick={onPrint} style={{ padding: "14px", background: C.primary, color: "#fff", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>🖨️ Print Bills</button>
+        <button onClick={onEdit} style={{ padding: "14px", background: "transparent", color: C.primary, border: `1.5px solid ${C.borderMid}`, borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>✏️ Edit Bills</button>
+      </div>
       <button onClick={onReset} style={{
         width: "100%", padding: "14px", background: "transparent",
         border: `1.5px solid ${C.borderMid}`, borderRadius: 14,
-        fontSize: 14, fontWeight: 700, color: C.primary, cursor: "pointer",
+        fontSize: 14, fontWeight: 700, color: C.primary, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center"
       }}>← View Different Month</button>
     </div>
   );
 }
 
 // ─── MAIN BILLING PAGE ─────────────────────────────────────────────────────
-export default function MeterBillingPage() {
+export default function MeterBillingPage({ onPrint }) {
   const [step, setStep]           = useState("month");   // month → entry → preview → done
   const [billingMonth, setBillingMonth] = useState(thisMonth());
   const [settings, setSettings]   = useState(null);
@@ -509,7 +513,13 @@ export default function MeterBillingPage() {
 
   // Already billed screen
   if (existingBills && existingBills.length > 0) {
-    return <AlreadyBilled billingMonth={billingMonth} bills={existingBills} onReset={() => { setExistingBills(null); setStep("month"); }} />;
+    return <AlreadyBilled
+      billingMonth={billingMonth}
+      bills={existingBills}
+      onReset={() => { setExistingBills(null); setStep("month"); }}
+      onPrint={onPrint}
+      onEdit={() => { setExistingBills([]); setStep("month"); }}
+    />;
   }
 
   // ── Meter entry screen ───────────────────────────────────────────────────
@@ -681,6 +691,10 @@ export default function MeterBillingPage() {
             <div style={{ fontSize: 15, fontWeight: 800, color: C.primary }}>{fmtBDT(calcs[r.id]?.total_bill)}</div>
           </div>
         ))}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+          <button onClick={onPrint} style={{ padding: "14px", background: C.primary, color: "#fff", border: "none", borderRadius: 14, fontSize: 15, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>🖨️ Print Bills</button>
+          <button onClick={() => { setStep("month"); setExistingBills([]); setMainWater(""); setSubReadings({}); }} style={{ padding: "14px", background: "transparent", color: C.primary, border: `1.5px solid ${C.borderMid}`, borderRadius: 14, fontSize: 15, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>✏️ Edit Bills</button>
+        </div>
         <button
           onClick={() => { setStep("month"); setExistingBills(null); setMainWater(""); setSubReadings({}); }}
           style={{ width: "100%", marginTop: 16, padding: "14px", background: C.primary, color: "#fff", border: "none", borderRadius: 14, fontSize: 15, fontWeight: 700, cursor: "pointer" }}
